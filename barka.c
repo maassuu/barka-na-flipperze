@@ -31,12 +31,14 @@ typedef struct {
 
 /* Dźwięk przez serwis powiadomień: uwzględnia głośność z ustawień Flippera
  * i tryb cichy (Stealth). Komunikat jest zmieniany tylko między wywołaniami
- * notification_message_block, które czeka na jego obsłużenie. */
+ * notification_message_block, które czeka na jego obsłużenie.
+ * message_do_not_reset jest konieczny: bez niego serwis wyłącza dźwięk zaraz
+ * po końcu sekwencji i z nuty zostaje tylko krótkie kliknięcie. */
 static NotificationMessage barka_ton = {
     .type = NotificationMessageTypeSoundOn,
     .data.sound = {.frequency = 440.0f, .volume = 1.0f},
 };
-static const NotificationSequence barka_sekwencja_ton = {&barka_ton, NULL};
+static const NotificationSequence barka_sekwencja_ton = {&barka_ton, &message_do_not_reset, NULL};
 static const NotificationSequence barka_sekwencja_cisza = {&message_sound_off, NULL};
 
 static uint32_t barka_teraz_ms(void) {
