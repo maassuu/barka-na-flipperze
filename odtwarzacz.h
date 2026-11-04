@@ -39,9 +39,19 @@ typedef struct {
     uint32_t start_ms; /**< początek odtwarzania */
     bool brzmi;
     size_t brzmi_indeks; /**< która nuta aktualnie brzmi */
+    uint8_t brzmi_powtorzenie;
+    uint8_t powtorzenia; /**< ile razy zagrać melodię (np. liczba zwrotek) */
+    uint8_t powtorzenie; /**< które powtórzenie trwa (od 0) */
 } Odtwarzacz;
 
+/** Ustawia melodię, stan "gotowe" i jedno powtórzenie. */
 void odtwarzacz_init(Odtwarzacz* o, const Melodia* melodia);
+
+/** Ile razy zagrać melodię pod rząd (co najmniej 1). */
+void odtwarzacz_ustaw_powtorzenia(Odtwarzacz* o, uint8_t powtorzenia);
+
+/** Czas całego odtwarzania: melodia razy liczba powtórzeń. */
+uint32_t odtwarzacz_czas_ms(const Odtwarzacz* o);
 
 /** Gra od początku. */
 Dzwiek odtwarzacz_start(Odtwarzacz* o, uint32_t teraz_ms);

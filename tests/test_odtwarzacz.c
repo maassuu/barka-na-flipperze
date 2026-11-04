@@ -130,6 +130,40 @@ static void test_zla_melodia(void) {
     CHECK(o.stan == OdtwarzaczGotowy);
 }
 
+static void test_powtorzenia(void) {
+    /* jedna nuta 100 ms (brzmi 0-80), grana 3 razy - jak 3 zwrotki */
+    const Nuta jedna[] = {{69, 100}};
+    const Melodia m = {"x", 60, 1000, jedna, 1};
+    Odtwarzacz o;
+    odtwarzacz_init(&o, &m);
+    CHECK(o.powtorzenia == 1u);
+    odtwarzacz_ustaw_powtorzenia(&o, 0); /* 0 = jak 1 */
+    CHECK(o.powtorzenia == 1u);
+    odtwarzacz_ustaw_powtorzenia(&o, 3);
+    CHECK(odtwarzacz_czas_ms(&o) == 300u);
+
+    CHECK(odtwarzacz_start(&o, 0).akcja == DzwiekWlacz);
+    CHECK(odtwarzacz_krok(&o, 80).akcja == DzwiekWylacz);
+    /* druga zwrotka: ta sama nuta (indeks 0) musi zabrzmieć od nowa */
+    CHECK(odtwarzacz_krok(&o, 100).akcja == DzwiekWlacz);
+    CHECK(o.powtorzenie == 1u);
+    CHECK(o.indeks == 0u);
+    CHECK_NEAR(odtwarzacz_postep(&o, 150), 0.5, 0.001);
+    /* spóźniony krok przeskakuje do trzeciej zwrotki, nuta wciąż brzmi */
+    const Dzwiek d = odtwarzacz_krok(&o, 210);
+    CHECK(o.powtorzenie == 2u);
+    CHECK(d.akcja == DzwiekWlacz);
+    CHECK(odtwarzacz_krok(&o, 300).akcja == DzwiekWylacz);
+    CHECK(o.stan == OdtwarzaczGotowy);
+    CHECK(o.powtorzenie == 0u);
+    /* ponowny start zaczyna od pierwszej zwrotki, stop zeruje */
+    odtwarzacz_start(&o, 1000);
+    odtwarzacz_krok(&o, 1150);
+    CHECK(o.powtorzenie == 1u);
+    odtwarzacz_stop(&o);
+    CHECK(o.powtorzenie == 0u);
+}
+
 void test_odtwarzacz_suite(void) {
     printf("[odtwarzacz]\n");
     RUN(test_odstep);
@@ -140,4 +174,5 @@ void test_odtwarzacz_suite(void) {
     RUN(test_stop_i_przelacz);
     RUN(test_przepelnienie_licznika);
     RUN(test_zla_melodia);
+    RUN(test_powtorzenia);
 }
