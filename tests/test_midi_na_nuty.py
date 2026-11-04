@@ -70,6 +70,21 @@ class WczytajTest(unittest.TestCase):
         with self.assertRaises(m.BladMidi):
             m.wczytaj(plik_midi([(0, bytes([60, 100]))]))  # dane bez statusu
 
+    def test_sylaby_lyric_i_text_kar(self):
+        # FF 05 (lyric) ma pierwszeństwo przed FF 01 (text)
+        sylaby = []
+        m.wczytaj(plik_midi([(0, b"\xff\x01\x02@T"), (10, b"\xff\x05\x02la"),
+                             (5, b"\xff\x01\x02xx"), (5, b"\xff\x05\x02la")]), sylaby)
+        self.assertEqual(sylaby, [10, 20])
+        # .kar: sylaby jako text; nagłówki "@" i zdarzenia w tiku 0 pomijane
+        sylaby = []
+        m.wczytaj(plik_midi([(0, b"\xff\x01\x02@K"), (0, b"\xff\x01\x02ti"),
+                             (30, b"\xff\x01\x03@Lx"), (10, b"\xff\x01\x02ta"),
+                             (20, b"\xff\x01\x02to")]), sylaby)
+        self.assertEqual(sylaby, [40, 60])
+        # bez listy wczytaj działa jak dawniej
+        self.assertEqual(len(m.wczytaj(plik_midi([(10, b"\xff\x05\x01a")]))), 3)
+
     def test_tik_na_sekundy_ze_zmiana_tempa(self):
         sek = m.tik_na_sekundy(480, [(0, 500000), (960, 1000000)])
         self.assertAlmostEqual(sek(480), 0.5)
@@ -83,6 +98,28 @@ class MelodiaTest(unittest.TestCase):
         self.assertEqual(m.wybierz_kanal(nuty), 1)
         with self.assertRaises(m.BladMidi):
             m.wybierz_kanal([(0, 10, 40, 9, 0, 100)])
+
+    def test_wybor_kanalu_po_sylabach(self):
+        sylaby = [0, 100, 200]
+        nuty = [
+            # kanał 0: wysoki, ale nie trafia w sylaby
+            (50, 90, 90, 0, 0, 100), (150, 190, 90, 0, 0, 100),
+            # kanał 1: trafia we wszystkie sylaby, z nakładkami
+            (0, 150, 60, 1, 0, 100), (100, 200, 62, 1, 0, 100), (200, 300, 64, 1, 0, 100),
+            # kanał 2: trafia we wszystkie, bez nakładek - wygrywa remis
+            (0, 100, 60, 2, 0, 100), (100, 200, 62, 2, 0, 100), (200, 300, 64, 2, 0, 100),
+        ]
+        self.assertEqual(m.zgodnosc_z_sylabami(nuty, 0, sylaby, 5), 0)
+        self.assertEqual(m.zgodnosc_z_sylabami(nuty, 2, sylaby, 5), 3)
+        self.assertEqual(m.zgodnosc_z_sylabami(nuty, 2, [3, 103, 250], 5), 2)
+        self.assertEqual(m.wybierz_kanal(nuty, sylaby, 5), 2)
+        self.assertEqual(m.wybierz_kanal(nuty), 0)  # bez tekstu: najwyższy
+
+    def test_legato(self):
+        linia = [(60, 0, 50), (None, 50, 100), (62, 100, 150), (None, 150, 400), (64, 400, 450)]
+        self.assertEqual(m.legato(linia, 99),
+                         [(60, 0, 100), (62, 100, 150), (None, 150, 400), (64, 400, 450)])
+        self.assertEqual(m.legato([(None, 0, 10), (60, 10, 20)], 99), [(None, 0, 10), (60, 10, 20)])
 
     def test_najwyzszy_glos_i_pauzy(self):
         nuty = [
@@ -154,6 +191,23 @@ class MainTest(unittest.TestCase):
             self.assertIn('.tytul = "Barka"', tekst)
             self.assertIn(".tempo_bpm = 120", tekst)
             self.assertIn("Wygenerowane przez narzedzia/midi_na_nuty.py z pliku a.mid", tekst)
+
+    def test_karaoke_zakres_i_legato(self):
+        data = plik_midi([
+            (0, on(0, 0)),  # znacznik odliczania o wysokości 0 - pomijany
+            (0, on(1, 90)),  # kanał 2: wysoki akompaniament, bez sylab
+            (240, b"\xff\x05\x02la"), (0, on(0, 72)),
+            (240, off(0, 72)), (240, b"\xff\x05\x02la"), (0, on(0, 74)),
+            (480, off(0, 74)), (0, off(0, 0)), (0, off(1, 90)),
+        ])
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = pathlib.Path(tmp)
+            (tmp / "a.kar").write_bytes(data)
+            wyj = tmp / "m.h"
+            self.assertEqual(m.main([str(tmp / "a.kar"), "-o", str(wyj), "--legato"]), 0)
+            # kanał 1 wybrany po sylabach; pauza 240 tików doklejona do 72
+            self.assertIn("static const Nuta melodia_barka_nuty[] = {\n    {72, 480}, {74, 480},\n};",
+                          wyj.read_text())
 
 
 if __name__ == "__main__":

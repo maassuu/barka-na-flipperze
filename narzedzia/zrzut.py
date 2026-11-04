@@ -1,6 +1,7 @@
 """Zrzut ekranu Flippera przez RPC (bez plików .proto - ręczne kodowanie).
 
-Użycie: python zrzut.py <port> <out.png> [skala]
+Użycie: python zrzut.py <port> <out.png> [skala] [--ok | --back]
+(--ok / --back: najpierw naciśnij przycisk, potem zrób zrzut)
 """
 import struct
 import sys
@@ -100,7 +101,10 @@ def input_msg(command_id, key, typ):
     return varint(len(body)) + body
 
 
-def grab(port, press_back=False):
+KLAWISZE = {"--back": 5, "--ok": 4}
+
+
+def grab(port, klawisz=None, czekaj_s=1.0):
     s = serial.Serial(port, 230400, timeout=0.2)
     try:
         s.reset_input_buffer()
@@ -114,12 +118,12 @@ def grab(port, press_back=False):
         s.reset_input_buffer()
         s.write(b"start_rpc_session\r")
         s.read_until(b"\n")
-        if press_back:
-            # BACK=5: PRESS(0), SHORT(2), RELEASE(1)
+        if klawisz is not None:
+            # klawisz (OK=4, BACK=5): PRESS(0), SHORT(2), RELEASE(1)
             for cid, typ in ((10, 0), (11, 2), (12, 1)):
-                s.write(input_msg(cid, 5, typ))
+                s.write(input_msg(cid, klawisz, typ))
                 read_msg(s)
-            time.sleep(1.0)
+            time.sleep(czekaj_s)
         s.write(main_msg(1, 20))  # gui_start_screen_stream_request
         for _ in range(20):
             msg = read_msg(s)
@@ -138,7 +142,8 @@ def grab(port, press_back=False):
 if __name__ == "__main__":
     port, out = sys.argv[1], sys.argv[2]
     scale = int(sys.argv[3]) if len(sys.argv) > 3 else 4
-    data = grab(port, press_back="--back" in sys.argv)
+    klawisz = next((k for f, k in KLAWISZE.items() if f in sys.argv), None)
+    data = grab(port, klawisz, czekaj_s=3.0 if klawisz == 4 else 1.0)
     # Układ stron u8g2: 8 stron po 128 bajtów, bit 0 = górny piksel strony
     px = [[bool(data[(y // 8) * 128 + x] >> (y % 8) & 1) for x in range(128)] for y in range(64)]
     write_png(out, px, scale)

@@ -1,6 +1,7 @@
 # Źródłowe pliki MIDI zostają lokalnie
 *.mid
 *.midi
+*.kar
 
 # Wyniki budowania uFBT i ich stan
 dist/

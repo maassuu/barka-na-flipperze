@@ -4,13 +4,15 @@ Użycie:
   python3 midi_na_nuty.py PLIK.mid --info
       pokazuje kanały: liczbę nut, zakres dźwięków, czas trwania
   python3 midi_na_nuty.py PLIK.mid -o melodia_barka.h [--kanal N] [--transpozycja P]
-      [--od SEK] [--do SEK] [--nazwa barka] [--tytul Barka]
+      [--od SEK] [--do SEK] [--legato] [--nazwa barka] [--tytul Barka]
 
-Bez --kanal wybierany jest kanał z najwyższą średnią wysokością dźwięków
-(bez perkusji, kanał 10). Gdy w jednej chwili brzmi kilka dźwięków,
+Bez --kanal wybierany jest kanał, w którego nuty trafiają sylaby tekstu
+(pliki karaoke .mid/.kar), a bez tekstu - kanał z najwyższą średnią
+wysokością dźwięków (bez perkusji, kanał 10). Gdy w jednej chwili brzmi kilka dźwięków,
 zostaje najwyższy. Tylko biblioteka standardowa Pythona.
 """
 import argparse
+import bisect
 import pathlib
 import struct
 import sys
@@ -36,11 +38,13 @@ def _varlen(data, pos):
     raise BladMidi("za długa liczba o zmiennej długości")
 
 
-def wczytaj(data):
+def wczytaj(data, sylaby=None):
     """Zwraca (tpq, tempa, nuty).
 
     tempa: lista (tik, mikrosekundy_na_cwiercnute), posortowana
     nuty:  lista (start, koniec, wysokosc, kanal, sciezka, glosnosc) w tikach
+    sylaby: jeśli podana lista, dopisywane są do niej tiki sylab tekstu
+            (zdarzenia lyric, np. w plikach karaoke) - sama treść jest pomijana
     """
     if data[:4] != b"MThd":
         raise BladMidi("to nie jest plik MIDI (brak MThd)")
@@ -50,7 +54,7 @@ def wczytaj(data):
     if fmt not in (0, 1):
         raise BladMidi(f"format {fmt} nie jest obsługiwany")
     pos = 8 + hlen
-    tempa, nuty = [], []
+    tempa, nuty, teksty = [], [], []
     for track in range(ntracks):
         if data[pos:pos + 4] != b"MTrk":
             raise BladMidi(f"brak MTrk dla ścieżki {track}")
@@ -74,6 +78,10 @@ def wczytaj(data):
                 ln, p = _varlen(data, p + 1)
                 if typ == 0x51 and ln == 3:
                     tempa.append((tick, int.from_bytes(data[p:p + 3], "big")))
+                elif typ == 0x05 and sylaby is not None:
+                    sylaby.append(tick)
+                elif typ == 0x01 and tick > 0 and not data[p:p + 1] == b"@":
+                    teksty.append(tick)  # .kar: sylaby jako zdarzenia "text"
                 p += ln
                 if typ == 0x2F:
                     break
@@ -107,6 +115,8 @@ def wczytaj(data):
     if not tempa or tempa[0][0] > 0:
         tempa.insert(0, (0, 500000))  # domyślnie 120 BPM
     nuty.sort()
+    if sylaby is not None and not sylaby:
+        sylaby.extend(sorted(teksty))
     return division, tempa, nuty
 
 
@@ -128,7 +138,18 @@ def tik_na_sekundy(tpq, tempa):
     return f
 
 
-def opis(tpq, tempa, nuty):
+def zgodnosc_z_sylabami(nuty, kanal, sylaby, tolerancja):
+    """Ile sylab tekstu wypada (+- tolerancja tików) na początek nuty kanału."""
+    poczatki = sorted(n[0] for n in nuty if n[3] == kanal)
+    trafione = 0
+    for t in sylaby:
+        i = bisect.bisect_left(poczatki, t - tolerancja)
+        if i < len(poczatki) and poczatki[i] <= t + tolerancja:
+            trafione += 1
+    return trafione
+
+
+def opis(tpq, tempa, nuty, sylaby=()):
     sek = tik_na_sekundy(tpq, tempa)
     kanaly = {}
     for n in nuty:
@@ -142,18 +163,33 @@ def opis(tpq, tempa, nuty):
         linie.append(
             f"kanał {kanal + 1:2d}{' (perkusja)' if kanal == PERKUSJA else ''}: "
             f"{len(ns)} nut, wysokość {min(wys)}-{max(wys)} (średnio {sum(wys) / len(wys):.1f}), "
-            f"{sek(ns[0][0]):.1f}-{sek(max(n[1] for n in ns)):.1f} s, nakładek {nakladki}")
+            f"{sek(ns[0][0]):.1f}-{sek(max(n[1] for n in ns)):.1f} s, nakładek {nakladki}"
+            + (f", sylaby tekstu {zgodnosc_z_sylabami(nuty, kanal, sylaby, tpq // 16)}/{len(sylaby)}"
+               if sylaby else ""))
     return "\n".join(linie)
 
 
-def wybierz_kanal(nuty):
+def wybierz_kanal(nuty, sylaby=(), tolerancja=0):
+    """Kanał melodii: ten, w którego nuty trafia najwięcej sylab tekstu
+    (pliki karaoke), a bez tekstu - z najwyższą średnią wysokością.
+    Perkusja (kanał 10) jest pomijana."""
     kandydaci = {}
     for n in nuty:
         if n[3] != PERKUSJA:
             kandydaci.setdefault(n[3], []).append(n[2])
     if not kandydaci:
         raise BladMidi("brak nut poza perkusją")
-    return max(kandydaci, key=lambda k: sum(kandydaci[k]) / len(kandydaci[k]))
+
+    def ocena(k):
+        srednia = sum(kandydaci[k]) / len(kandydaci[k])
+        if sylaby:
+            # remis: mniej nakładających się nut = czystsza linia melodii
+            ns = [n for n in nuty if n[3] == k]
+            nakladki = sum(1 for x, y in zip(ns, ns[1:]) if y[0] < x[1])
+            return (zgodnosc_z_sylabami(nuty, k, sylaby, tolerancja), -nakladki, srednia)
+        return (0, 0, srednia)
+
+    return max(kandydaci, key=ocena)
 
 
 def melodia(nuty, kanal):
@@ -222,6 +258,21 @@ def dominujaca(nuty, kanal, krok, zakres=(55, 88), prog=0.1):
         else:
             linia.append((wys, c * krok, (c + 1) * krok))
     return linia
+
+
+def legato(linia, max_pauza):
+    """Dokleja do poprzedniej nuty pauzy nie dłuższe niż max_pauza tików.
+
+    Pliki karaoke często zapisują śpiew jako krótkie nuty z przerwami - na
+    głośniku brzmi to jak staccato. Dłuższe pauzy (oddechy) zostają.
+    """
+    out = []
+    for wys, a, b in linia:
+        if wys is None and out and out[-1][0] is not None and b - a <= max_pauza:
+            out[-1] = (out[-1][0], out[-1][1], b)
+        else:
+            out.append((wys, a, b))
+    return out
 
 
 def przytnij(linia, od_tiku=None, do_tiku=None):
@@ -294,23 +345,31 @@ def main(argv=None):
                     help="najwyzszy: zwykły MIDI z melodią; dominujacy: MIDI z nagrania audio")
     ap.add_argument("--krok", type=int, default=8,
                     help="tryb dominujacy: komórka jako ułamek całej nuty (8 = ósemka)")
-    ap.add_argument("--zakres", default="55-88", help="tryb dominujacy: zakres dźwięków MIDI")
+    ap.add_argument("--zakres", help="zakres dźwięków MIDI, np. 24-108 (domyślnie 24-108, "
+                    "w trybie dominujacy 55-88); nuty spoza zakresu są pomijane")
     ap.add_argument("--prog", type=float, default=0.1, help="tryb dominujacy: próg ciszy")
+    ap.add_argument("--legato", action="store_true",
+                    help="doklej do nut pauzy krótsze niż ćwierćnuta")
     ap.add_argument("--nazwa", default="barka")
     ap.add_argument("--tytul", default="Barka")
     a = ap.parse_args(argv)
 
-    tpq, tempa, nuty = wczytaj(a.plik.read_bytes())
+    sylaby = []
+    tpq, tempa, nuty = wczytaj(a.plik.read_bytes(), sylaby)
     if a.info:
-        print(opis(tpq, tempa, nuty))
+        print(opis(tpq, tempa, nuty, sylaby))
         return 0
     if not a.wyjscie:
         ap.error("podaj -o PLIK.h albo --info")
     if len({us for _, us in tempa}) > 1:
         print("uwaga: plik zmienia tempo, używam pierwszego", file=sys.stderr)
-    kanal = a.kanal - 1 if a.kanal else wybierz_kanal(nuty)
+    zakres = a.zakres or ("55-88" if a.tryb == "dominujacy" else "24-108")
+    lo, hi = (int(x) for x in zakres.split("-"))
+    if a.tryb == "najwyzszy":
+        # np. nuty o wysokości 0 bywają znacznikami odliczania, nie dźwiękami
+        nuty = [n for n in nuty if lo <= n[2] <= hi]
+    kanal = a.kanal - 1 if a.kanal else wybierz_kanal(nuty, sylaby, tpq // 16)
     if a.tryb == "dominujacy":
-        lo, hi = (int(x) for x in a.zakres.split("-"))
         linia = dominujaca(nuty, kanal, max(1, tpq * 4 // a.krok), (lo, hi), a.prog)
     else:
         linia = melodia(nuty, kanal)
@@ -329,6 +388,8 @@ def main(argv=None):
     linia = przytnij(linia,
                      tik_z_sekund(a.od) if a.od is not None else None,
                      tik_z_sekund(a.do) if a.do is not None else None)
+    if a.legato:
+        linia = legato(linia, tpq - 1)
     wynik = na_nuty(linia, a.transpozycja)
     bpm = round(60e6 / tempa[0][1])
     a.wyjscie.write_text(naglowek_c(wynik, tpq, bpm, a.nazwa, a.tytul, a.plik.name), encoding="utf-8")
