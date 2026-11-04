@@ -17,3 +17,6 @@ __pycache__/
 *.pyc
 .DS_Store
 *.swp
+
+# Plik tekstu na karcie - przygotowywany lokalnie
+tekst.txt

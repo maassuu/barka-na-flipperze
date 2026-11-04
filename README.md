@@ -70,22 +70,67 @@ Pliki `.mid` / `.kar` nie są trzymane w repo. Bez `melodia_barka.h` aplikacja
 gra przykład z domeny publicznej - „Wlazł kotek na płotek”
 (`melodia_przyklad.h`).
 
+## Tekst do melodii
+
+Jeśli na karcie jest plik `/ext/apps_data/barka/tekst.txt`, aplikacja podczas
+grania pokazuje bieżącą linię tekstu i podświetla śpiewaną sylabę. Każda
+zwrotka z pliku to jedno przejście melodii. Bez pliku aplikacja działa jak
+wyżej. Tekstu piosenki nie ma w repo - plik przygotowujesz sama.
+
+![Ekran z tekstem](docs/ekran_tekst.png)
+
+*Zrzut z Flippera z tekstem zastępczym.*
+
+### Format pliku
+
+UTF-8, jeden plik na całą piosenkę:
+
+- każda niepusta linia to jedna linia na ekranie (długie linie są zawijane
+  do trzech wierszy obok portretu),
+- spacje dzielą słowa, `-` dzieli słowo na sylaby; **każda sylaba przypada na
+  kolejną nutę** melodii (pauzy się nie liczą),
+- `_` przedłuża poprzednią sylabę o jedną nutę - osobno (`la _ la`) albo
+  w słowie (`ko-_-tek`); `_` na początku zwrotki to nuta bez tekstu,
+- pusta linia zaczyna nową zwrotkę - melodia gra od początku,
+- linie zaczynające się od `#` to komentarze,
+- polskie litery są zamieniane na łacińskie (font Flippera ich nie ma).
+
+Przykład dla melodii przykładowej: [przyklady/wlazl_kotek.txt](przyklady/wlazl_kotek.txt).
+
+### Plik z karaoke
+
+Plik `.kar` ma sylaby zsynchronizowane z nutami, więc narzędzie zrobi
+`tekst.txt` samo i od razu wgra go na Flippera:
+
+```sh
+python3 narzedzia/kar_na_tekst.py "Barka 1.kar" -o tekst.txt --nut-w-zwrotce 72 \
+    --wgraj /dev/cu.usbmodemflip_NAZWA
+```
+
+`--nut-w-zwrotce` to liczba brzmiących nut w `melodia_barka.h` (jedna zwrotka;
+dla obecnej melodii 72). `--wgraj` wymaga pyserial. Bez niego skopiuj
+`tekst.txt` przez qFlipper do `/ext/apps_data/barka/`. Aplikacja czyta tekst
+przy starcie.
+
 ## Testy
 
 ```sh
 make -C tests                                # logika aplikacji (C, ASan/UBSan)
-python3 -m unittest discover -s tests -v     # narzędzie MIDI
+python3 -m unittest discover -s tests -v     # narzędzia MIDI i tekstu
 ```
 
 Testy w C sprawdzają częstotliwości nut, czasy trwania, odtwarzacz (włączanie
-i wyłączanie dźwięku, odstępy między nutami, koniec melodii, przepełnienie
-licznika czasu) i portret, a także czy wbudowana melodia jest poprawna i mieści
-się w zakresie głośnika. Testy narzędzia budują pliki MIDI w pamięci
-i kompilują wygenerowany nagłówek.
+i wyłączanie dźwięku, odstępy między nutami, koniec melodii, zwrotki,
+przepełnienie licznika czasu), portret, parser tekstu (sylaby, zwrotki,
+przedłużenia, polskie litery, limity) i zawijanie linii, a także czy wbudowana
+melodia jest poprawna i mieści się w zakresie głośnika. Testy narzędzi budują
+pliki MIDI w pamięci, kompilują wygenerowany nagłówek i sprawdzają, że plik
+tekstu z `kar_na_tekst.py` czyta parser aplikacji.
 
 ## Narzędzia
 
 - `narzedzia/midi_na_nuty.py` - MIDI / karaoke → `melodia_barka.h`
+- `narzedzia/kar_na_tekst.py` - karaoke → `tekst.txt` (opcjonalnie od razu na Flippera)
 - `narzedzia/zrzut.py` - zrzut ekranu Flippera przez USB (RPC); opcje `--ok`
   i `--back` najpierw naciskają przycisk
 
