@@ -1,7 +1,7 @@
 """Robi plik tekstu dla aplikacji (format z tekst.h) z pliku karaoke .kar/.mid.
 
 Użycie:
-  python3 kar_na_tekst.py PLIK.kar -o tekst.txt --nut-w-zwrotce 72
+  python3 kar_na_tekst.py PLIK.kar -o tekst.txt (--nut-w-zwrotce 72 | --melodia melodia_barka.h)
       [--kanal N] [--kodowanie cp1250] [--wgraj PORT]
 
 Każda sylaba z pliku karaoke jest przypisywana do brzmiącej nuty kanału
@@ -17,6 +17,7 @@ import argparse
 import bisect
 import os
 import pathlib
+import re
 import sys
 import time
 
@@ -24,6 +25,15 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import midi_na_nuty as m  # noqa: E402
 
 SCIEZKA_NA_FLIPPERZE = "/ext/apps_data/barka/tekst.txt"
+
+
+def nut_w_melodii(sciezka):
+    """Liczba brzmiących nut w nagłówku melodii (np. melodia_barka.h)."""
+    tekst = pathlib.Path(sciezka).read_text(encoding="utf-8")
+    nuty = re.findall(r"\{(\d+), (\d+)\}", tekst)
+    if not nuty:
+        raise ValueError(f"{sciezka}: brak nut")
+    return sum(1 for n, _ in nuty if int(n) != 0)
 
 
 def dekoduj(bajty, kodowanie):
@@ -147,10 +157,14 @@ def main(argv=None):
     ap.add_argument("plik", type=pathlib.Path)
     ap.add_argument("-o", "--wyjscie", type=pathlib.Path, required=True)
     ap.add_argument("--nut-w-zwrotce", type=int, default=0)
+    ap.add_argument("--melodia", type=pathlib.Path,
+                    help="nagłówek melodii (melodia_barka.h): --nut-w-zwrotce = liczba jego nut")
     ap.add_argument("--kanal", type=int, help="kanał melodii 1-16 (domyślnie jak midi_na_nuty.py)")
     ap.add_argument("--kodowanie", default="cp1250", help="kodowanie tekstu, gdy nie jest UTF-8")
     ap.add_argument("--wgraj", metavar="PORT", help="wgraj wynik na Flippera, np. /dev/cu.usbmodemflip_X")
     a = ap.parse_args(argv)
+    if a.melodia and not a.nut_w_zwrotce:
+        a.nut_w_zwrotce = nut_w_melodii(a.melodia)
 
     sylaby, tresc = [], []
     tpq, _, nuty = m.wczytaj(a.plik.read_bytes(), sylaby, tresc)

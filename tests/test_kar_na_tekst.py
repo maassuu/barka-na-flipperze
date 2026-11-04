@@ -49,6 +49,17 @@ class ZbudujTest(unittest.TestCase):
         self.assertEqual(k.dekoduj("żółw".encode("utf-8"), "cp1250"), "żółw")
         self.assertEqual(k.dekoduj("żółw".encode("cp1250"), "cp1250"), "żółw")
 
+    def test_nut_w_melodii(self):
+        # pauzy (0 albo NUTA_PAUZA) się nie liczą
+        self.assertEqual(k.nut_w_melodii(KORZEN / "melodia_przyklad.h"), 18)
+        with tempfile.TemporaryDirectory() as tmp:
+            h = pathlib.Path(tmp) / "m.h"
+            h.write_text("static const Nuta n[] = {\n    {72, 10}, {0, 5}, {74, 10},\n};\n")
+            self.assertEqual(k.nut_w_melodii(h), 2)
+            h.write_text("/* pusto */\n")
+            with self.assertRaises(ValueError):
+                k.nut_w_melodii(h)
+
     def test_przypisz(self):
         poczatki = [0, 100, 200, 300]
         self.assertEqual(k.przypisz([0, 98, 150, 205, 999], poczatki, 10), [0, 1, 2, 2, 3])

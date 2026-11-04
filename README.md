@@ -91,24 +91,37 @@ UTF-8, jeden plik na całą piosenkę:
   kolejną nutę** melodii (pauzy się nie liczą),
 - `_` przedłuża poprzednią sylabę o jedną nutę - osobno (`la _ la`) albo
   w słowie (`ko-_-tek`); `_` na początku zwrotki to nuta bez tekstu,
+- `~` to spacja wewnątrz sylaby, gdy na jednej nucie są dwa krótkie słowa
+  (`i~do`),
 - pusta linia zaczyna nową zwrotkę - melodia gra od początku,
 - linie zaczynające się od `#` to komentarze,
 - polskie litery są zamieniane na łacińskie (font Flippera ich nie ma).
 
 Przykład dla melodii przykładowej: [przyklady/wlazl_kotek.txt](przyklady/wlazl_kotek.txt).
 
-### Plik z karaoke
+### Tekst z karaoke przy budowaniu
 
-Plik `.kar` ma sylaby zsynchronizowane z nutami, więc narzędzie zrobi
-`tekst.txt` samo i od razu wgra go na Flippera:
+Najprościej: włóż plik `.kar` do folderu [`karaoke/`](karaoke/README.md)
+i zbuduj aplikację (`ufbt`). Przy budowaniu `application.fam` uruchamia
+`narzedzia/kar_na_tekst.py`, które dopasowuje sylaby z pliku karaoke do nut
+`melodia_barka.h` i zapisuje `pliki/tekst.txt`. Plik trafia do środka
+`barka.fap` - wystarczy wgrać sam `.fap`. Foldery `karaoke/` i `pliki/` są
+w `.gitignore`.
+
+Aplikacja szuka tekstu najpierw w `/ext/apps_data/barka/tekst.txt` (plik
+wgrany ręcznie ma pierwszeństwo), potem w tekście dołączonym do `.fap`.
+
+### Tekst z karaoke ręcznie
+
+To samo narzędzie można uruchomić samodzielnie, także z wgraniem na Flippera:
 
 ```sh
-python3 narzedzia/kar_na_tekst.py "Barka 1.kar" -o tekst.txt --nut-w-zwrotce 72 \
+python3 narzedzia/kar_na_tekst.py "Barka 1.kar" -o tekst.txt --melodia melodia_barka.h \
     --wgraj /dev/cu.usbmodemflip_NAZWA
 ```
 
-`--nut-w-zwrotce` to liczba brzmiących nut w `melodia_barka.h` (jedna zwrotka;
-dla obecnej melodii 72). `--wgraj` wymaga pyserial. Bez niego skopiuj
+`--melodia` liczy nuty jednej zwrotki z nagłówka melodii (zamiast tego można
+podać `--nut-w-zwrotce 72`). `--wgraj` wymaga pyserial; bez niego skopiuj
 `tekst.txt` przez qFlipper do `/ext/apps_data/barka/`. Aplikacja czyta tekst
 przy starcie.
 

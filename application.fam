@@ -1,3 +1,32 @@
+import glob
+import os
+import subprocess
+import sys
+
+# Tekst do melodii przy budowaniu: jeśli w karaoke/ jest plik .kar, narzędzie
+# robi z niego pliki/tekst.txt (sylaby dopasowane do nut melodia_barka.h),
+# a plik trafia do środka .fap (fap_file_assets). Na Flipperze aplikacja
+# czyta go z /ext/apps_assets/barka/. Foldery karaoke/ i pliki/ są w .gitignore.
+_katalog = os.path.dirname(os.path.abspath(locals().get("app_manifest_path", "application.fam")))
+_pliki_kar = sorted(glob.glob(os.path.join(_katalog, "karaoke", "*.kar")))
+_assets = None
+if _pliki_kar:
+    _tekst = os.path.join(_katalog, "pliki", "tekst.txt")
+    os.makedirs(os.path.dirname(_tekst), exist_ok=True)
+    subprocess.run(
+        [
+            sys.executable,
+            os.path.join(_katalog, "narzedzia", "kar_na_tekst.py"),
+            _pliki_kar[0],
+            "-o",
+            _tekst,
+            "--melodia",
+            os.path.join(_katalog, "melodia_barka.h"),
+        ],
+        check=True,
+    )
+    _assets = "pliki"
+
 App(
     appid="barka",
     name="Barka",
@@ -9,6 +38,7 @@ App(
     fap_icon="barka_10px.png",
     fap_version="1.0",
     fap_description="Portret papieza i melodia na glosniczku Flippera",
+    fap_file_assets=_assets,
     # Testy hosta (tests/) i narzędzia (narzedzia/) nie wchodzą do .fap
     sources=["*.c", "!tests", "!narzedzia"],
 )

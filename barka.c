@@ -24,7 +24,11 @@
 #define BARKA_SZEROKOSC    (BARKA_PRAWA_KRAW - BARKA_TEKST_X + 1)
 #define BARKA_WIERSZE      (3u)
 #define BARKA_MAX_PLIK     (16u * 1024u)
-#define BARKA_PLIK_TEKSTU  APP_DATA_PATH("tekst.txt")
+/* Najpierw plik wgrany ręcznie, potem tekst dołączony do .fap przy budowaniu */
+static const char* const barka_pliki_tekstu[] = {
+    APP_DATA_PATH("tekst.txt"),
+    APP_ASSETS_PATH("tekst.txt"),
+};
 
 typedef struct {
     FuriMutex* mutex;
@@ -62,12 +66,11 @@ static void barka_graj(BarkaApp* app, Dzwiek dzwiek) {
     }
 }
 
-/* Wczytuje tekst z karty; brak pliku albo błąd = aplikacja gra bez tekstu */
-static Tekst* barka_wczytaj_tekst(void) {
+/* Wczytuje tekst z pliku; brak pliku albo błąd = NULL */
+static Tekst* barka_wczytaj_plik(Storage* storage, const char* sciezka) {
     Tekst* tekst = NULL;
-    Storage* storage = furi_record_open(RECORD_STORAGE);
     File* plik = storage_file_alloc(storage);
-    if(storage_file_open(plik, BARKA_PLIK_TEKSTU, FSAM_READ, FSOM_OPEN_EXISTING)) {
+    if(storage_file_open(plik, sciezka, FSAM_READ, FSOM_OPEN_EXISTING)) {
         const uint64_t rozmiar = storage_file_size(plik);
         if(rozmiar > 0u && rozmiar <= BARKA_MAX_PLIK) {
             char* bufor = malloc((size_t)rozmiar);
@@ -76,7 +79,7 @@ static Tekst* barka_wczytaj_tekst(void) {
                 tekst = malloc(sizeof(Tekst));
                 const TekstWynik wynik = tekst_parsuj(tekst, bufor, przeczytane);
                 if(wynik != TekstOk) {
-                    FURI_LOG_W("Barka", "tekst.txt: blad %d", (int)wynik);
+                    FURI_LOG_W("Barka", "%s: blad %d", sciezka, (int)wynik);
                     free(tekst);
                     tekst = NULL;
                 }
@@ -86,6 +89,16 @@ static Tekst* barka_wczytaj_tekst(void) {
     }
     storage_file_close(plik);
     storage_file_free(plik);
+    return tekst;
+}
+
+/* Tekst z karty albo z .fap; bez tekstu aplikacja po prostu gra melodię */
+static Tekst* barka_wczytaj_tekst(void) {
+    Tekst* tekst = NULL;
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    for(size_t i = 0; tekst == NULL && i < COUNT_OF(barka_pliki_tekstu); i++) {
+        tekst = barka_wczytaj_plik(storage, barka_pliki_tekstu[i]);
+    }
     furi_record_close(RECORD_STORAGE);
     return tekst;
 }
