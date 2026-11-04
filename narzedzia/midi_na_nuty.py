@@ -38,13 +38,14 @@ def _varlen(data, pos):
     raise BladMidi("za długa liczba o zmiennej długości")
 
 
-def wczytaj(data, sylaby=None):
+def wczytaj(data, sylaby=None, tresc=None):
     """Zwraca (tpq, tempa, nuty).
 
     tempa: lista (tik, mikrosekundy_na_cwiercnute), posortowana
     nuty:  lista (start, koniec, wysokosc, kanal, sciezka, glosnosc) w tikach
     sylaby: jeśli podana lista, dopisywane są do niej tiki sylab tekstu
-            (zdarzenia lyric, np. w plikach karaoke) - sama treść jest pomijana
+            (zdarzenia lyric, a bez nich text - pliki .kar)
+    tresc:  jeśli podana lista, dopisywane są do niej pary (tik, bajty sylaby)
     """
     if data[:4] != b"MThd":
         raise BladMidi("to nie jest plik MIDI (brak MThd)")
@@ -54,7 +55,7 @@ def wczytaj(data, sylaby=None):
     if fmt not in (0, 1):
         raise BladMidi(f"format {fmt} nie jest obsługiwany")
     pos = 8 + hlen
-    tempa, nuty, teksty = [], [], []
+    tempa, nuty, liryki, teksty = [], [], [], []
     for track in range(ntracks):
         if data[pos:pos + 4] != b"MTrk":
             raise BladMidi(f"brak MTrk dla ścieżki {track}")
@@ -78,10 +79,10 @@ def wczytaj(data, sylaby=None):
                 ln, p = _varlen(data, p + 1)
                 if typ == 0x51 and ln == 3:
                     tempa.append((tick, int.from_bytes(data[p:p + 3], "big")))
-                elif typ == 0x05 and sylaby is not None:
-                    sylaby.append(tick)
+                elif typ == 0x05:
+                    liryki.append((tick, data[p:p + ln]))
                 elif typ == 0x01 and tick > 0 and not data[p:p + 1] == b"@":
-                    teksty.append(tick)  # .kar: sylaby jako zdarzenia "text"
+                    teksty.append((tick, data[p:p + ln]))  # .kar: sylaby jako "text"
                 p += ln
                 if typ == 0x2F:
                     break
@@ -115,8 +116,11 @@ def wczytaj(data, sylaby=None):
     if not tempa or tempa[0][0] > 0:
         tempa.insert(0, (0, 500000))  # domyślnie 120 BPM
     nuty.sort()
-    if sylaby is not None and not sylaby:
-        sylaby.extend(sorted(teksty))
+    wybrane = sorted(liryki or teksty, key=lambda x: x[0])
+    if sylaby is not None:
+        sylaby.extend(t for t, _ in wybrane)
+    if tresc is not None:
+        tresc.extend(wybrane)
     return division, tempa, nuty
 
 
