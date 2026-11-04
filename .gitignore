@@ -1,0 +1,19 @@
+# Źródłowe pliki MIDI zostają lokalnie
+*.mid
+*.midi
+*.kar
+
+# Wyniki budowania uFBT i ich stan
+dist/
+.ufbt/
+.vscode/
+compile_commands.json
+
+# Testy hosta
+tests/build/
+
+# Python, edytory, system
+__pycache__/
+*.pyc
+.DS_Store
+*.swp
