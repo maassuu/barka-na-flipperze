@@ -1,0 +1,14 @@
+App(
+    appid="barka",
+    name="Barka",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="barka_app",
+    requires=["gui", "notification"],
+    stack_size=2 * 1024,
+    fap_category="Tools",
+    fap_icon="barka_10px.png",
+    fap_version="1.0",
+    fap_description="Portret papieza i melodia na glosniczku Flippera",
+    # Testy hosta (tests/) i narzędzia (narzedzia/) nie wchodzą do .fap
+    sources=["*.c", "!tests", "!narzedzia"],
+)

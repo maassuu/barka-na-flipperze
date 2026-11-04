@@ -1,0 +1,19 @@
+# Melodia "Barki" jest chroniona prawem autorskim - nie publikujemy jej
+melodia_barka.h
+*.mid
+*.midi
+
+# Wyniki budowania uFBT i ich stan
+dist/
+.ufbt/
+.vscode/
+compile_commands.json
+
+# Testy hosta
+tests/build/
+
+# Python, edytory, system
+__pycache__/
+*.pyc
+.DS_Store
+*.swp
