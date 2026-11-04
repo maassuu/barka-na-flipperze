@@ -32,6 +32,15 @@ class ZbudujTest(unittest.TestCase):
         t = syl("Ra", "z", " dwa")
         self.assertEqual(k.zbuduj(t, [0, 0, 1], 0), "Raz dwa\n")
 
+    def test_kilka_slow_na_jednej_nucie(self):
+        # zdarzenie z dwoma słowami = jedna nuta -> "~", bez przesunięcia
+        t = syl("La ", " i ra", "zy ", "lo")
+        self.assertEqual(k.zbuduj(t, [0, 1, 2, 3], 0), "La i~ra-zy lo\n")
+        # druga sylaba na tej samej nucie, jako nowe słowo; "lo" bez spacji
+        # przed sobą to dalsza część tego słowa
+        t = syl("La ", "i", " o", "lo ", "pa")
+        self.assertEqual(k.zbuduj(t, [0, 1, 1, 2, 3], 0), "La i~o-lo pa\n")
+
     def test_znaki_formatu_usuwane(self):
         t = syl("a-b", "_c ", " d")
         self.assertEqual(k.zbuduj(t, [0, 1, 2], 0), "ab-c d\n")

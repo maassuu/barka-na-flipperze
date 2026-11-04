@@ -62,14 +62,16 @@ def zbuduj(tresc, numery, nut_w_zwrotce, kodowanie="cp1250"):
     for (_, bajty), nr in zip(tresc, numery):
         s = dekoduj(bajty, kodowanie).replace("\r", "").replace("\n", "/")
         nowa_linia = s[:1] in ("/", "\\")
-        s = s.lstrip("/\\").replace("-", "").replace("_", "")
-        sylaba = s.strip() or "_"
+        s = s.lstrip("/\\").replace("-", "").replace("_", "").replace("~", "")
+        # spacje wewnątrz sylaby (kilka słów na jednej nucie) -> "~"
+        sylaba = "~".join(s.split()) or "_"
         nowe_slowo = not slowo_otwarte or s[:1].isspace()
 
         if poprzednia is not None and nr <= poprzednia:
             # kolejna sylaba na tej samej nucie - doklej do poprzedniej
             if s.strip() and zwrotki and zwrotki[-1] and zwrotki[-1][-1]:
-                zwrotki[-1][-1][-1] += s.strip()
+                odstep = "~" if s[:1].isspace() or not slowo_otwarte else ""
+                zwrotki[-1][-1][-1] += odstep + "~".join(s.split())
             slowo_otwarte = bool(s) and not s[-1].isspace()
             continue
 

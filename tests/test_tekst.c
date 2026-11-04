@@ -62,6 +62,12 @@ static void test_przedluzenia(void) {
     sprawdz_sylabe(t, 0, "La", 1);
     sprawdz_sylabe(t, 1, "la", 3);
     sprawdz_sylabe(t, 2, "la", 5);
+    /* "~" = spacja w sylabie: dwa słowa na jednej nucie */
+    CHECK(parsuj(t, "raz i~ra-zy dwa\n") == TekstOk);
+    CHECK_STR(tekst_linia(t, 0), "raz i razy dwa");
+    sprawdz_sylabe(t, 1, "i ra", 1);
+    sprawdz_sylabe(t, 2, "zy", 2);
+    sprawdz_sylabe(t, 3, "dwa", 3);
     /* linia z samymi "_" nie pojawia się na ekranie, ale liczy nuty */
     CHECK(parsuj(t, "_ _\nraz\n") == TekstOk);
     CHECK(t->ile_linii == 1u);

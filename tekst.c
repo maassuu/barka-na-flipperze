@@ -73,7 +73,9 @@ static TekstWynik
                 s->start = t->ile_znakow;
                 const char* q = p;
                 while(q < koniec_czesci) {
-                    if(!tekst_dopisz(t, tekst_znak(&q, koniec_czesci))) return TekstZaDuzy;
+                    char c = tekst_znak(&q, koniec_czesci);
+                    if(c == '~') c = ' '; /* spacja w sylabie, bez nowej nuty */
+                    if(!tekst_dopisz(t, c)) return TekstZaDuzy;
                 }
                 const uint16_t dl = (uint16_t)(t->ile_znakow - s->start);
                 s->dlugosc = dl > 255u ? 255u : (uint8_t)dl;

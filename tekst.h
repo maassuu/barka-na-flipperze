@@ -10,6 +10,8 @@
  *     przypada na kolejną brzmiącą nutę melodii (pauzy się nie liczą),
  *   - "_" (osobno albo jako sylaba, np. "ko-_-tek") przedłuża poprzednią
  *     sylabę o jedną nutę,
+ *   - "~" to spacja wewnątrz sylaby (np. dwa krótkie słowa na jednej nucie:
+ *     "i~z"),
  *   - pusta linia zaczyna nową zwrotkę - liczenie nut wraca do początku
  *     melodii, która gra się wtedy jeszcze raz.
  * Polskie litery zamieniane są na łacińskie (font Flippera ich nie ma).
