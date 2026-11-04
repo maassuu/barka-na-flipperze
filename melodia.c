@@ -37,6 +37,14 @@ uint32_t melodia_czas_ms(const Melodia* melodia) {
     return suma;
 }
 
+size_t melodia_dzwieki_przed(const Melodia* melodia, size_t indeks) {
+    size_t ile = 0;
+    for(size_t i = 0; i < indeks && i < melodia->ile; i++) {
+        if(melodia->nuty[i].nuta != NUTA_PAUZA) ile++;
+    }
+    return ile;
+}
+
 bool melodia_poprawna(const Melodia* melodia) {
     if(melodia == NULL || melodia->nuty == NULL || melodia->ile == 0u) return false;
     if(melodia->tempo_bpm == 0u || melodia->tiki_na_cwiercnute == 0u) return false;

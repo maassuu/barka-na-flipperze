@@ -17,3 +17,11 @@ __pycache__/
 *.pyc
 .DS_Store
 *.swp
+
+# Plik tekstu na karcie - przygotowywany lokalnie
+tekst.txt
+
+# Tekst do melodii przy budowaniu: plik .kar i wynik zostają lokalnie
+karaoke/*
+!karaoke/README.md
+pliki/

@@ -1,0 +1,7 @@
+# Przykład pliku tekstu dla melodii przykładowej (melodia_przyklad.h).
+# "Wlazł kotek na płotek" - polska piosenka ludowa, domena publiczna.
+#
+# Na Flipperze: /ext/apps_data/barka/tekst.txt
+# Każda sylaba (oddzielona '-' albo spacją) przypada na kolejną nutę.
+Wlazł ko-tek na pło-tek i mru-ga,
+ład-na to pio-sen-ka nie dłu-ga.
