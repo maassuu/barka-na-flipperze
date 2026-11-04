@@ -1,5 +1,5 @@
-/* Wybór melodii: "Barka" z pliku melodia_barka.h, jeśli istnieje (plik jest
- * w .gitignore - prawa autorskie), w przeciwnym razie melodia przykładowa. */
+/* Wybór melodii: "Barka" z pliku melodia_barka.h (generowany przez
+ * narzedzia/midi_na_nuty.py), a gdy go nie ma - melodia przykładowa. */
 #pragma once
 
 #if defined(__has_include) && __has_include("melodia_barka.h")

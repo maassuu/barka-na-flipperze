@@ -1,5 +1,4 @@
-# Melodia "Barki" jest chroniona prawem autorskim - nie publikujemy jej
-melodia_barka.h
+# Źródłowe pliki MIDI zostają lokalnie
 *.mid
 *.midi
 
