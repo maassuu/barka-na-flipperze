@@ -44,12 +44,12 @@ UFBT_HOME=~/.ufbt-mntm ufbt   # Momentum (SDK pobrany wcześniej przez ufbt upda
 
 ## Melodia
 
-Melodia jest w `melodia_barka.h`, wygenerowanym z pliku karaoke (`.kar`)
-narzędziem `narzedzia/midi_na_nuty.py`:
+Melodia jest w `melodia_barka.h`, wygenerowanym z pliku karaoke
+[`karaoke/barka.kar`](karaoke/README.md) narzędziem `narzedzia/midi_na_nuty.py`:
 
 ```sh
-python3 narzedzia/midi_na_nuty.py "Barka 1.kar" --info
-python3 narzedzia/midi_na_nuty.py "Barka 1.kar" -o melodia_barka.h --do 63.4 --transpozycja 12 --legato
+python3 narzedzia/midi_na_nuty.py karaoke/barka.kar --info
+python3 narzedzia/midi_na_nuty.py karaoke/barka.kar -o melodia_barka.h --do 63.4 --transpozycja 12 --legato
 ```
 
 - `--info` opisuje kanały pliku; przy plikach karaoke pokazuje też, ile sylab
@@ -66,7 +66,8 @@ python3 narzedzia/midi_na_nuty.py "Barka 1.kar" -o melodia_barka.h --do 63.4 --t
   audio (dziesiątki nut na sekundę). Działa heurystycznie i daje wyraźnie
   gorszy wynik niż porządny plik MIDI.
 
-Pliki `.mid` / `.kar` nie są trzymane w repo. Bez `melodia_barka.h` aplikacja
+Plik karaoke jest w repo w folderze `karaoke/`; pliki `.mid` / `.midi` zostają
+lokalnie (są w `.gitignore`). Bez `melodia_barka.h` aplikacja
 gra przykład z domeny publicznej - „Wlazł kotek na płotek”
 (`melodia_przyklad.h`).
 
@@ -75,7 +76,8 @@ gra przykład z domeny publicznej - „Wlazł kotek na płotek”
 Jeśli na karcie jest plik `/ext/apps_data/barka/tekst.txt`, aplikacja podczas
 grania pokazuje bieżącą linię tekstu i podświetla śpiewaną sylabę. Każda
 zwrotka z pliku to jedno przejście melodii. Bez pliku aplikacja działa jak
-wyżej. Tekstu piosenki nie ma w repo - plik przygotowujesz sama.
+wyżej. Tekst powstaje przy budowaniu z pliku karaoke w `karaoke/` (zobacz
+niżej) albo przygotowujesz go sama.
 
 ![Ekran z tekstem](docs/ekran_tekst.png)
 
@@ -101,12 +103,12 @@ Przykład dla melodii przykładowej: [przyklady/wlazl_kotek.txt](przyklady/wlazl
 
 ### Tekst z karaoke przy budowaniu
 
-Najprościej: włóż plik `.kar` do folderu [`karaoke/`](karaoke/README.md)
-i zbuduj aplikację (`ufbt`). Przy budowaniu `application.fam` uruchamia
+Plik karaoke leży w folderze [`karaoke/`](karaoke/README.md), więc wystarczy
+zbudować aplikację (`ufbt`). Przy budowaniu `application.fam` uruchamia
 `narzedzia/kar_na_tekst.py`, które dopasowuje sylaby z pliku karaoke do nut
 `melodia_barka.h` i zapisuje `pliki/tekst.txt`. Plik trafia do środka
-`barka.fap` - wystarczy wgrać sam `.fap`. Foldery `karaoke/` i `pliki/` są
-w `.gitignore`.
+`barka.fap` - wystarczy wgrać sam `.fap`. Folder `pliki/` jest wynikiem
+budowania i jest w `.gitignore`.
 
 Aplikacja szuka tekstu najpierw w `/ext/apps_data/barka/tekst.txt` (plik
 wgrany ręcznie ma pierwszeństwo), potem w tekście dołączonym do `.fap`.
@@ -116,7 +118,7 @@ wgrany ręcznie ma pierwszeństwo), potem w tekście dołączonym do `.fap`.
 To samo narzędzie można uruchomić samodzielnie, także z wgraniem na Flippera:
 
 ```sh
-python3 narzedzia/kar_na_tekst.py "Barka 1.kar" -o tekst.txt --melodia melodia_barka.h \
+python3 narzedzia/kar_na_tekst.py karaoke/barka.kar -o tekst.txt --melodia melodia_barka.h \
     --wgraj /dev/cu.usbmodemflip_NAZWA
 ```
 

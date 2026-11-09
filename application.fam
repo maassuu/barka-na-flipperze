@@ -6,7 +6,7 @@ import sys
 # Tekst do melodii przy budowaniu: jeśli w karaoke/ jest plik .kar, narzędzie
 # robi z niego pliki/tekst.txt (sylaby dopasowane do nut melodia_barka.h),
 # a plik trafia do środka .fap (fap_file_assets). Na Flipperze aplikacja
-# czyta go z /ext/apps_assets/barka/. Foldery karaoke/ i pliki/ są w .gitignore.
+# czyta go z /ext/apps_assets/barka/. Folder pliki/ (wynik) jest w .gitignore.
 _katalog = os.path.dirname(os.path.abspath(locals().get("app_manifest_path", "application.fam")))
 _pliki_kar = sorted(glob.glob(os.path.join(_katalog, "karaoke", "*.kar")))
 _assets = None

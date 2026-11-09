@@ -1,7 +1,6 @@
 # Źródłowe pliki MIDI zostają lokalnie
 *.mid
 *.midi
-*.kar
 
 # Wyniki budowania uFBT i ich stan
 dist/
@@ -21,7 +20,7 @@ __pycache__/
 # Plik tekstu na karcie - przygotowywany lokalnie
 tekst.txt
 
-# Tekst do melodii przy budowaniu: plik .kar i wynik zostają lokalnie
-karaoke/*
-!karaoke/README.md
+# Tekst do melodii zrobiony przy budowaniu z karaoke/*.kar zostaje lokalnie
+#karaoke/*
+#!karaoke/README.md
 pliki/
