@@ -12,8 +12,8 @@ CFLAGS = -std=c11 -O1 -g -Wall -Wextra -Werror -Wdouble-promotion -Wshadow \
 SRC_DIR = ..
 BUILD = build
 
-APP_SRC = $(SRC_DIR)/melodia.c $(SRC_DIR)/odtwarzacz.c $(SRC_DIR)/portret.c
-TEST_SRC = test_main.c test_melodia.c test_odtwarzacz.c test_portret.c
+APP_SRC = $(SRC_DIR)/melodia.c $(SRC_DIR)/odtwarzacz.c $(SRC_DIR)/portret.c $(SRC_DIR)/tekst.c
+TEST_SRC = test_main.c test_melodia.c test_odtwarzacz.c test_portret.c test_tekst.c
 
 .PHONY: all run clean
 

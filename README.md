@@ -44,12 +44,12 @@ UFBT_HOME=~/.ufbt-mntm ufbt   # Momentum (SDK pobrany wcześniej przez ufbt upda
 
 ## Melodia
 
-Melodia jest w `melodia_barka.h`, wygenerowanym z pliku karaoke (`.kar`)
-narzędziem `narzedzia/midi_na_nuty.py`:
+Melodia jest w `melodia_barka.h`, wygenerowanym z pliku karaoke
+[`karaoke/barka.kar`](karaoke/README.md) narzędziem `narzedzia/midi_na_nuty.py`:
 
 ```sh
-python3 narzedzia/midi_na_nuty.py "Barka 1.kar" --info
-python3 narzedzia/midi_na_nuty.py "Barka 1.kar" -o melodia_barka.h --do 63.4 --transpozycja 12 --legato
+python3 narzedzia/midi_na_nuty.py karaoke/barka.kar --info
+python3 narzedzia/midi_na_nuty.py karaoke/barka.kar -o melodia_barka.h --do 63.4 --transpozycja 12 --legato
 ```
 
 - `--info` opisuje kanały pliku; przy plikach karaoke pokazuje też, ile sylab
@@ -66,26 +66,86 @@ python3 narzedzia/midi_na_nuty.py "Barka 1.kar" -o melodia_barka.h --do 63.4 --t
   audio (dziesiątki nut na sekundę). Działa heurystycznie i daje wyraźnie
   gorszy wynik niż porządny plik MIDI.
 
-Pliki `.mid` / `.kar` nie są trzymane w repo. Bez `melodia_barka.h` aplikacja
+Plik karaoke jest w repo w folderze `karaoke/`; pliki `.mid` / `.midi` zostają
+lokalnie (są w `.gitignore`). Bez `melodia_barka.h` aplikacja
 gra przykład z domeny publicznej - „Wlazł kotek na płotek”
 (`melodia_przyklad.h`).
+
+## Tekst do melodii
+
+Jeśli na karcie jest plik `/ext/apps_data/barka/tekst.txt`, aplikacja podczas
+grania pokazuje bieżącą linię tekstu i podświetla śpiewaną sylabę. Każda
+zwrotka z pliku to jedno przejście melodii. Bez pliku aplikacja działa jak
+wyżej. Tekst powstaje przy budowaniu z pliku karaoke w `karaoke/` (zobacz
+niżej) albo przygotowujesz go sama.
+
+![Ekran z tekstem](docs/ekran_tekst.png)
+
+*Zrzut z Flippera z tekstem zastępczym.*
+
+### Format pliku
+
+UTF-8, jeden plik na całą piosenkę:
+
+- każda niepusta linia to jedna linia na ekranie (długie linie są zawijane
+  do trzech wierszy obok portretu),
+- spacje dzielą słowa, `-` dzieli słowo na sylaby; **każda sylaba przypada na
+  kolejną nutę** melodii (pauzy się nie liczą),
+- `_` przedłuża poprzednią sylabę o jedną nutę - osobno (`la _ la`) albo
+  w słowie (`ko-_-tek`); `_` na początku zwrotki to nuta bez tekstu,
+- `~` to spacja wewnątrz sylaby, gdy na jednej nucie są dwa krótkie słowa
+  (`i~do`),
+- pusta linia zaczyna nową zwrotkę - melodia gra od początku,
+- linie zaczynające się od `#` to komentarze,
+- polskie litery są zamieniane na łacińskie (font Flippera ich nie ma).
+
+Przykład dla melodii przykładowej: [przyklady/wlazl_kotek.txt](przyklady/wlazl_kotek.txt).
+
+### Tekst z karaoke przy budowaniu
+
+Plik karaoke leży w folderze [`karaoke/`](karaoke/README.md), więc wystarczy
+zbudować aplikację (`ufbt`). Przy budowaniu `application.fam` uruchamia
+`narzedzia/kar_na_tekst.py`, które dopasowuje sylaby z pliku karaoke do nut
+`melodia_barka.h` i zapisuje `pliki/tekst.txt`. Plik trafia do środka
+`barka.fap` - wystarczy wgrać sam `.fap`. Folder `pliki/` jest wynikiem
+budowania i jest w `.gitignore`.
+
+Aplikacja szuka tekstu najpierw w `/ext/apps_data/barka/tekst.txt` (plik
+wgrany ręcznie ma pierwszeństwo), potem w tekście dołączonym do `.fap`.
+
+### Tekst z karaoke ręcznie
+
+To samo narzędzie można uruchomić samodzielnie, także z wgraniem na Flippera:
+
+```sh
+python3 narzedzia/kar_na_tekst.py karaoke/barka.kar -o tekst.txt --melodia melodia_barka.h \
+    --wgraj /dev/cu.usbmodemflip_NAZWA
+```
+
+`--melodia` liczy nuty jednej zwrotki z nagłówka melodii (zamiast tego można
+podać `--nut-w-zwrotce 72`). `--wgraj` wymaga pyserial; bez niego skopiuj
+`tekst.txt` przez qFlipper do `/ext/apps_data/barka/`. Aplikacja czyta tekst
+przy starcie.
 
 ## Testy
 
 ```sh
 make -C tests                                # logika aplikacji (C, ASan/UBSan)
-python3 -m unittest discover -s tests -v     # narzędzie MIDI
+python3 -m unittest discover -s tests -v     # narzędzia MIDI i tekstu
 ```
 
 Testy w C sprawdzają częstotliwości nut, czasy trwania, odtwarzacz (włączanie
-i wyłączanie dźwięku, odstępy między nutami, koniec melodii, przepełnienie
-licznika czasu) i portret, a także czy wbudowana melodia jest poprawna i mieści
-się w zakresie głośnika. Testy narzędzia budują pliki MIDI w pamięci
-i kompilują wygenerowany nagłówek.
+i wyłączanie dźwięku, odstępy między nutami, koniec melodii, zwrotki,
+przepełnienie licznika czasu), portret, parser tekstu (sylaby, zwrotki,
+przedłużenia, polskie litery, limity) i zawijanie linii, a także czy wbudowana
+melodia jest poprawna i mieści się w zakresie głośnika. Testy narzędzi budują
+pliki MIDI w pamięci, kompilują wygenerowany nagłówek i sprawdzają, że plik
+tekstu z `kar_na_tekst.py` czyta parser aplikacji.
 
 ## Narzędzia
 
 - `narzedzia/midi_na_nuty.py` - MIDI / karaoke → `melodia_barka.h`
+- `narzedzia/kar_na_tekst.py` - karaoke → `tekst.txt` (opcjonalnie od razu na Flippera)
 - `narzedzia/zrzut.py` - zrzut ekranu Flippera przez USB (RPC); opcje `--ok`
   i `--back` najpierw naciskają przycisk
 

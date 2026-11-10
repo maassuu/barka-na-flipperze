@@ -36,3 +36,6 @@ uint32_t melodia_czas_ms(const Melodia* melodia);
 
 /** True, gdy melodia nadaje się do odtwarzania (tempo, nuty, długości). */
 bool melodia_poprawna(const Melodia* melodia);
+
+/** Ile brzmiących nut (bez pauz) jest przed pozycją indeks. */
+size_t melodia_dzwieki_przed(const Melodia* melodia, size_t indeks);

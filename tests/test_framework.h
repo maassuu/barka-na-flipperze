@@ -58,3 +58,4 @@ static inline int pm_test_near(double a, double b, double eps) {
 void test_melodia_suite(void);
 void test_odtwarzacz_suite(void);
 void test_portret_suite(void);
+void test_tekst_suite(void);
